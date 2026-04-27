@@ -1,1 +1,0 @@
-D:\driftmap\target\wasm32-unknown-unknown\release\libproteus.rlib: D:\driftmap\proteus\src\glorysloader.rs D:\driftmap\proteus\src\integrators.rs D:\driftmap\proteus\src\interpolation.rs D:\driftmap\proteus\src\lib.rs D:\driftmap\proteus\src\particles.rs D:\driftmap\proteus\src\release_manager.rs D:\driftmap\proteus\src\simulation.rs D:\driftmap\proteus\src\wasm.rs
