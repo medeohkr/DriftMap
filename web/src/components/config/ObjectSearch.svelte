@@ -1,23 +1,30 @@
 <script lang="ts">
     import { config } from '$lib/stores.svelte';
-    import { searchOils, type OilRecord, getOilJsonForRust, getGenericOils } from '$lib/oils';
+    import { searchObjects, getObjectJsonForRust, getGenericObjects } from '$lib/objects';
     import { createProteus } from '$lib/simulation';
 
+    interface SarObject {
+        name: string;
+        downwind: number[];
+        right: number[];
+        left: number[];
+    }
+
     let query = $state('');
-    let results: OilRecord[] = $state([]);
+    let results: SarObject[] = $state([]);
     let isFocused = $state(false);
 
     $effect(() => {
         if (query.length > 0) {
-            results = searchOils(query);
+            results = searchObjects(query);
         } else if (isFocused) {
-            results = getGenericOils();
+            results = getGenericObjects();
         }
     });
 
-    function selectOil(oil: OilRecord) {
-        config.tracerJson = getOilJsonForRust(oil.oil_id);
-        query = oil.name || oil.oil_id;
+    function selectObject(obj: SarObject) {
+        config.tracerJson = getObjectJsonForRust(obj.name);
+        query = obj.name;
         results = [];
         isFocused = false;
 
@@ -25,29 +32,28 @@
     }
 </script>
 
-<div class="oil-selector-container">
+<div class="object-selector-container">
     <div class="floating-container">
-        <span>Oil Type</span>
+        <span>SAR Object</span>
         <input
-            class="selector-primary oil-search"
+            class="selector-primary object-search"
             type="text"
             bind:value={query}
             onfocus={() => isFocused = true}
             onblur={() => isFocused = false}
-            placeholder="Search the ADIOS Oil Database..."
+            placeholder="Search the SAROPS Leeway Database..."
         />
     </div>
 
     {#if isFocused && results.length > 0}
-        <ul class="oil-results">
-            {#each results as oil}
+        <ul class="object-results">
+            {#each results as object}
                 <li>
                     <button
-                        class="oil-item"
-                        onmousedown={() => selectOil(oil)}
+                        class="object-item"
+                        onmousedown={() => selectObject(object)}
                     >
-                        <span class="oil-name">{oil.name || oil.oil_id}</span>
-                        <span class="oil-api">API: {oil.api_gravity?.toFixed(1) ?? '?'}</span>
+                        <span class="object-name">{object.name}</span>
                     </button>
                 </li>
             {/each}
@@ -56,20 +62,20 @@
 </div>
 
 <style>
-.oil-selector-container {
+.object-selector-container {
     position: relative;
     width: 100%;
 }
 
-.oil-search {
+.object-search {
     width: 100%;
-
     text-overflow: ellipsis;
 }
 
-.oil-results {
+.object-results {
     position: absolute;
     top: 100%;
+    overflow-x: auto;
     overflow-y: auto;
     width: 100%;
     max-height: var(--search-results-height);
@@ -83,12 +89,12 @@
     margin-top: 3.5px;
 }
 
-.oil-results li {
+.object-results li {
     margin: 0;
     padding: 0;
 }
 
-.oil-item {
+.object-item {
     display: flex;
     width: 100%;
     padding: var(--spacing-xs) var(--spacing-sm);
@@ -106,26 +112,17 @@
     border-bottom: var(--border-sm) solid var(--border-color);
 }
 
-.oil-item:hover {
+.object-item:hover {
     color: var(--text-primary);
     background: var(--text-secondary);
 }
 
-.oil-item:last-child {
+.object-item:last-child {
     border-bottom: none;
 }
 
-.oil-name {
-    overflow: hidden;
+.object-name {
     flex: 1;
-
-    text-overflow: ellipsis;
     white-space: nowrap;
 }
-
-.oil-api {
-    margin-left: var(--spacing-sm);
-}
-
-
 </style>
