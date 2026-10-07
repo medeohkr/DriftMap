@@ -22,7 +22,7 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-from opendrift.models.oceandrift import OceanDrift
+from opendrift.models.leeway import Leeway
 from opendrift.readers import (
     reader_netCDF_CF_generic,
     add_standard_name_for_surface_grib_variables,
@@ -38,7 +38,7 @@ ECMWF_NC = Path("../../data/wind/ecmwf_2026-09-19_00z.nc")
 
 START_TIME = datetime(2026, 9, 19, 0, 0)
 DURATION_HOURS = 48
-N_PARTICLES = 1
+N_PARTICLES = 10000
 TIME_STEP_SECONDS = 900
 TIME_STEP_OUTPUT_SECONDS = 3600
 
@@ -50,10 +50,6 @@ GRID_N = 8
 CLI_BIN = Path("../../target/release/proteus.exe")   # Windows
 CLI_STEPS = DURATION_HOURS * (3600 // TIME_STEP_OUTPUT_SECONDS)  # 18
 CLI_TIME_STEP_MINUTES = TIME_STEP_OUTPUT_SECONDS / 60.0           # 60
-
-# Same physics as the OpenDrift config
-WIND_FACTOR = 0.02
-WIND_DEFLECTION = 0.0
 
 RUNS_DIR = Path("runs")
 
@@ -96,7 +92,7 @@ def make_grid():
 def run_opendrift(run_dir, release_lon, release_lat, reader_smoc, reader_wind):
     out_nc = run_dir / "opendrift_output.nc"
 
-    o = OceanDrift(loglevel=30)
+    o = Leeway(loglevel=30)
     o.add_reader([reader_smoc, reader_wind])
     o.set_config('drift:advection_scheme', 'runge-kutta4')
     o.seed_elements(
@@ -105,9 +101,12 @@ def run_opendrift(run_dir, release_lon, release_lat, reader_smoc, reader_wind):
         radius=0,
         number=N_PARTICLES,
         time=START_TIME,
+        object_type=1,
+        jibe_probability=0
     )
 
     t0 = time.time()
+
     o.run(
         duration=timedelta(hours=DURATION_HOURS),
         time_step=TIME_STEP_SECONDS,
@@ -123,10 +122,17 @@ def run_opendrift(run_dir, release_lon, release_lat, reader_smoc, reader_wind):
 def write_cli_config(run_dir, release_lon, release_lat):
     config = {
         "start_date": START_TIME.strftime("%Y-%m-%d %H:%M"),
-        "tracer_type": "generic",
+        "tracer_type": "sar",
         "tracer_json": {
-            "wind_factor": WIND_FACTOR,
-            "wind_deflection": WIND_DEFLECTION,
+            "downwind": [0.96, 0.00, 12.00],
+            "right": [0.54, 0.00, 9.40],
+            "left": [-0.54, 0.00, 9.40],
+            "jibe_probability": 0.00,
+            "random_orientation": False,
+            "capsizing": False,
+            "capsize_threshold": 30,
+            "capsize_fraction": 0.4,     
+            "capsize_sigma": 5,
         },
         "releases": [
             {
@@ -262,8 +268,6 @@ def main():
             "start_time": START_TIME.isoformat(),
             "duration_hours": DURATION_HOURS,
             "n_particles": N_PARTICLES,
-            "wind_factor": WIND_FACTOR,
-            "wind_deflection": WIND_DEFLECTION,
         }
 
         print(f"\n[{i+1:>2}/{total}] ({lon:.2f}, {lat:.2f})")
